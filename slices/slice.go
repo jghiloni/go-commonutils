@@ -1,6 +1,4 @@
-package utils
-
-import "fmt"
+package slices
 
 // AnySlice takes a slice and returns the same slice, but with each value
 // represented as an any (or interface{})
@@ -26,30 +24,10 @@ func FromAnySlice[T any](src []any) []T {
 
 	dest := make([]T, len(src))
 	for i := range src {
-		d, ok := src[i].(T)
-		if !ok {
-			panic(fmt.Errorf("%T is not T", d))
-		}
-
-		dest[i] = d
+		dest[i] = src[i].(T)
 	}
 
 	return dest
-}
-
-// Reverse takes a slice and returns a new slice with the indices reversed, in O(n) time
-func Reverse[T any](src []T) []T {
-	if len(src) == 0 {
-		return src
-	}
-
-	dst := make([]T, len(src))
-	last := len(src) - 1
-	for i := 0; i <= len(src)/2; i++ {
-		dst[i], dst[last-i] = src[last-i], src[i]
-	}
-
-	return dst
 }
 
 // SubsliceUntil will return a new slice with the first n elements represented in src, where
@@ -102,4 +80,54 @@ func Reduce[R any, T any](src []T, reducer func(R, T) R, initialValue R) R {
 	}
 
 	return value
+}
+
+// Uniq takes a slice and removes duplicate elements. Unlike unix's uniq
+// command, it will work if the slice is not sorted. The returned slice's
+// values will have duplicates removed, but will otherwise be in the same
+// order
+func Uniq[T comparable](src []T) []T {
+	dest := make([]T, 0, len(src))
+	set := make(map[T]bool)
+
+	for _, t := range src {
+		if len(dest) == 0 {
+			dest = append(dest, t)
+			set[t] = true
+			continue
+		}
+
+		if _, exists := set[t]; !exists {
+			dest = append(dest, t)
+			set[t] = true
+		}
+	}
+
+	return dest
+}
+
+// UniqFunc is similar to Uniq, but can accept slices of any type, and requires a
+// func "id" that satisfies the following conditions:
+//
+//   - for a given T t, id(t) returns a value that satisfies the comparable interface
+//   - if id(t1) == id(t2), then t1 == t2
+func UniqFunc[T any, R comparable](src []T, id func(t T) R) []T {
+	dest := make([]T, 0, len(src))
+	set := make(map[R]bool)
+
+	for _, t := range src {
+		hash := id(t)
+		if len(dest) == 0 {
+			dest = append(dest, t)
+			set[hash] = true
+			continue
+		}
+
+		if _, exists := set[hash]; !exists {
+			dest = append(dest, t)
+			set[hash] = true
+		}
+	}
+
+	return dest
 }

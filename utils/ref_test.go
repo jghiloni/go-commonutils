@@ -1,7 +1,7 @@
 package utils_test
 
 import (
-	"github.com/jghiloni/go-commonutils/utils"
+	"github.com/jghiloni/go-commonutils/v2/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
