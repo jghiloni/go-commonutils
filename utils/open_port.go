@@ -54,7 +54,7 @@ func FindOpenLocalPort(timeout time.Duration, ports ...uint16) (uint16, error) {
 
 	if exact {
 		for _, port := range ports {
-			open, err := isOpen(timeout, port)
+			open, err := IsLocalPortOpen(timeout, port)
 			if err != nil || open {
 				return port, err
 			}
@@ -66,7 +66,7 @@ func FindOpenLocalPort(timeout time.Duration, ports ...uint16) (uint16, error) {
 	low, high := ports[0], ports[1]
 	for portOffset := range high - low {
 		port := low + portOffset
-		open, err := isOpen(timeout, port)
+		open, err := IsLocalPortOpen(timeout, port)
 		if err != nil || open {
 			return port, err
 		}
@@ -75,7 +75,7 @@ func FindOpenLocalPort(timeout time.Duration, ports ...uint16) (uint16, error) {
 	return 0, ErrNoOpenPorts
 }
 
-func isOpen(timeout time.Duration, port uint16) (bool, error) {
+func IsLocalPortOpen(timeout time.Duration, port uint16) (bool, error) {
 	conn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", port), timeout)
 	if errors.Is(err, syscall.ECONNREFUSED) /* non-windows */ ||
 		errors.Is(err, syscall.Errno(0x274d)) /* windows */ {
