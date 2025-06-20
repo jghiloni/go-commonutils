@@ -80,6 +80,8 @@ func isOpen(timeout time.Duration, port uint16) (bool, error) {
 	if errors.Is(err, syscall.ECONNREFUSED) {
 		return true, nil
 	}
-	conn.Close()
+	if conn != nil {
+		conn.Close()
+	}
 	return false, err
 }
