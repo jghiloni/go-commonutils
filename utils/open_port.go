@@ -77,7 +77,8 @@ func FindOpenLocalPort(timeout time.Duration, ports ...uint16) (uint16, error) {
 
 func isOpen(timeout time.Duration, port uint16) (bool, error) {
 	conn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", port), timeout)
-	if errors.Is(err, syscall.ECONNREFUSED) {
+	if errors.Is(err, syscall.ECONNREFUSED) /* non-windows */ ||
+		errors.Is(err, syscall.Errno(0x274d)) /* windows */ {
 		return true, nil
 	}
 	if conn != nil {
