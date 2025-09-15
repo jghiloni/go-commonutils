@@ -7,7 +7,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/jghiloni/go-commonutils/v2/retry"
+	"github.com/jghiloni/go-commonutils/v3/retry"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

@@ -1,14 +1,13 @@
-package utils_test
+package net_test
 
 import (
 	"net"
 	"net/netip"
 	"time"
 
+	net2 "github.com/jghiloni/go-commonutils/v3/net"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"github.com/jghiloni/go-commonutils/v2/utils"
 )
 
 var _ = Describe("OpenPort", func() {
@@ -26,7 +25,7 @@ var _ = Describe("OpenPort", func() {
 		u.Close()
 	})
 	DescribeTable("iterations", func(errExpected bool, portExpected uint16, ports ...uint16) {
-		port, err := utils.FindOpenLocalPort(50*time.Millisecond, ports...)
+		port, err := net2.FindOpenLocalPort(50*time.Millisecond, ports...)
 		errAssertion := Expect(err)
 		checker := errAssertion.ShouldNot
 		if errExpected {

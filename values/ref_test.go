@@ -1,7 +1,7 @@
-package utils_test
+package values_test
 
 import (
-	"github.com/jghiloni/go-commonutils/v2/utils"
+	"github.com/jghiloni/go-commonutils/v3/values"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -12,10 +12,10 @@ type refTestStruct struct {
 }
 
 var (
-	refTestString     *any = utils.Ref(any("foo"))
-	refTestInt        *any = utils.Ref(any(3))
-	refTestBool       *any = utils.Ref(any(true))
-	refTestStructInst *any = utils.Ref(any(refTestStruct{"one", "two"}))
+	refTestString     *any = values.Ref(any("foo"))
+	refTestInt        *any = values.Ref(any(3))
+	refTestBool       *any = values.Ref(any(true))
+	refTestStructInst *any = values.Ref(any(refTestStruct{"one", "two"}))
 )
 
 var _ = Describe("Pointer Utilities", func() {

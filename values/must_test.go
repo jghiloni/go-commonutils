@@ -1,9 +1,9 @@
-package utils_test
+package values_test
 
 import (
 	"errors"
 
-	"github.com/jghiloni/go-commonutils/v2/utils"
+	"github.com/jghiloni/go-commonutils/v3/values"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -18,12 +18,12 @@ func testFunc(i int) (bool, error) {
 
 var _ = Describe("Must", func() {
 	It("doesn't panic when error is nil", func() {
-		Expect(utils.Must(testFunc(2))).To(BeTrue())
+		Expect(values.Must(testFunc(2))).To(BeTrue())
 	})
 
 	It("panics when error is not nil", func() {
 		actual := func() {
-			utils.Must(testFunc(1))
+			values.Must(testFunc(1))
 		}
 
 		Expect(actual).To(Panic())

@@ -1,4 +1,4 @@
-package utils
+package values
 
 // Must takes a val and an error and panics if the error is not nil. This is most
 // useful when executing a function that returns both a value and an error in a

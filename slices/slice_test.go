@@ -3,11 +3,11 @@ package slices_test
 import (
 	"time"
 
+	"github.com/jghiloni/go-commonutils/v3/values"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/jghiloni/go-commonutils/v2/slices"
-	"github.com/jghiloni/go-commonutils/v2/utils"
+	"github.com/jghiloni/go-commonutils/v3/slices"
 )
 
 type mapTest struct {
@@ -59,8 +59,8 @@ var _ = Describe("Slice", func() {
 		Expect(actual).To(Equal(expected))
 	},
 		Entry("full", slices.Map([]int{1, 2, 4, 6}, func(i int) mapTest {
-			return mapTest{Val: i, IsEven: utils.Ref(i%2 == 0)}
-		}), []mapTest{{1, utils.Ref(false)}, {2, utils.Ref(true)}, {4, utils.Ref(true)}, {6, utils.Ref(true)}}),
+			return mapTest{Val: i, IsEven: values.Ref(i%2 == 0)}
+		}), []mapTest{{1, values.Ref(false)}, {2, values.Ref(true)}, {4, values.Ref(true)}, {6, values.Ref(true)}}),
 		Entry("empty", slices.Map([]int{}, func(int) mapTest { return mapTest{} }), []mapTest{}),
 	)
 
