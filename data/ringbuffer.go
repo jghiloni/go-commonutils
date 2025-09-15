@@ -34,6 +34,10 @@ func NewRingBuffer[T any](capacity uint) *RingBuffer[T] {
 	}
 }
 
+// Read will remove and return the first len(p) items from the buffer. If the buffer is closed, it will return
+// [ErrRingBufferClosed]. If the buffer is empty, it will return [io.EOF]. In the successful case, it will return the
+// number of items returned (which will be min(len(p), buffer.capacity)) and a nil error -- though you may consider
+// io.EOF to be a successful error case, as it is simply indicating the buffer is empty
 func (r *RingBuffer[T]) Read(p []T) (int, error) {
 	if r.closed {
 		return -1, ErrRingBufferClosed
@@ -63,6 +67,10 @@ func (r *RingBuffer[T]) Read(p []T) (int, error) {
 	return n, nil
 }
 
+// Write will push items into the buffer. If the buffer is closed, it will return [ErrRingBufferClosed]. That is the only
+// case in which Write will return an error. If the given list of items would cause the buffer to grow, a sufficient number
+// of items will be dropped from the front of the buffer. If the list of items is larger than the buffer itself, then
+// when it is complete, the list will be the last buffer.capacity items of the passed list
 func (r *RingBuffer[T]) Write(p []T) (int, error) {
 	if r.closed {
 		return -1, ErrRingBufferClosed
@@ -81,8 +89,15 @@ func (r *RingBuffer[T]) Write(p []T) (int, error) {
 		return int(r.capacity), nil
 	}
 
-	r.buf = append(r.buf[len(p):int(r.capacity)], p...)
-	return len(p), nil
+	availableSpace := int(r.capacity) - len(r.buf)
+	if len(p) <= availableSpace {
+		r.buf = append(r.buf, p...)
+		return len(p), nil
+	} else {
+		bumpCount := len(p) - availableSpace
+		r.buf = append(r.buf[bumpCount:], p...)
+		return len(p), nil
+	}
 }
 
 // Close will render the RingBuffer unusable
@@ -120,10 +135,39 @@ func (r *RingBuffer[T]) Push(vals ...T) (int, error) {
 
 // Len is equivalent to len(slice)
 func (r *RingBuffer[T]) Len() int {
+	r.rw.Lock()
+	defer r.rw.Unlock()
 	return len(r.buf)
 }
 
 // Cap returns the capacity of the buffer and is immutable
 func (r *RingBuffer[T]) Cap() uint {
+	r.rw.Lock()
+	defer r.rw.Unlock()
 	return r.capacity
+}
+
+// Peek allows the user to view the first n items of the ring buffer without affecting the data
+func (r *RingBuffer[T]) Peek(n int) ([]T, error) {
+	if r.closed {
+		return nil, ErrRingBufferClosed
+	}
+
+	if n < 0 {
+		return nil, errors.New("n must be positive")
+	}
+
+	r.rw.Lock()
+	defer r.rw.Unlock()
+
+	p := make([]T, n)
+	copyLen := min(n, len(r.buf))
+
+	copy(p, r.buf[:copyLen])
+	return p, nil
+}
+
+// PeekAll is a convenience method equivalent to [*RingBuffer.Peek(*RingBuffer.Len())]
+func (r *RingBuffer[T]) PeekAll() ([]T, error) {
+	return r.Peek(r.Len())
 }

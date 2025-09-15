@@ -37,4 +37,25 @@ var _ = Describe("Ringbuffer", func() {
 		_, err = buf.Push(true)
 		Expect(errors.Is(err, data.ErrRingBufferClosed)).To(BeTrue())
 	})
+
+	It("can peek without affecting the contents", func() {
+		buf := data.NewRingBuffer[byte](10)
+		_, err := buf.Write([]byte("hello"))
+		Expect(err).ShouldNot(HaveOccurred())
+
+		Expect(buf.Cap()).To(BeEquivalentTo(10))
+		Expect(buf.Len()).To(BeEquivalentTo(5))
+
+		t, err := buf.Peek(4)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(t).Should(BeEquivalentTo("hell"))
+		Expect(buf.Cap()).To(BeEquivalentTo(10))
+		Expect(buf.Len()).To(BeEquivalentTo(5))
+
+		x, err := buf.Pop(4)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(x).Should(BeEquivalentTo("hell"))
+		Expect(buf.Cap()).To(BeEquivalentTo(10))
+		Expect(buf.Len()).To(BeEquivalentTo(1))
+	})
 })
