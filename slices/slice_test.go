@@ -100,4 +100,19 @@ var _ = Describe("Slice", func() {
 		Entry("all dupes", []uniqTest{newUniqTest(1)}, []uniqTest{newUniqTest(1), newUniqTest(1), newUniqTest(1), newUniqTest(1), newUniqTest(1), newUniqTest(1)}),
 		Entry("some dupes", []uniqTest{newUniqTest(4), newUniqTest(3), newUniqTest(1), newUniqTest(2)}, []uniqTest{newUniqTest(4), newUniqTest(3), newUniqTest(3), newUniqTest(4), newUniqTest(1), newUniqTest(2), newUniqTest(3), newUniqTest(2), newUniqTest(4), newUniqTest(1)}),
 	)
+
+	Describe("Shuffle", func() {
+		It("Returns things randomized", func() {
+			test := make([]int, 1000)
+			for i := range 1000 {
+				test[i] = i
+			}
+
+			used := make([]int, 0, 1000)
+			for i := range slices.Shuffle(test) {
+				Expect(slices.Contains(used, i)).To(BeFalse())
+				used = append(used, i)
+			}
+		})
+	})
 })

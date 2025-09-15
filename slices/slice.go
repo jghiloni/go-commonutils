@@ -2,7 +2,10 @@ package slices
 
 import (
 	"cmp"
+	"crypto/rand"
 	"iter"
+	"math"
+	"math/big"
 	"slices"
 )
 
@@ -136,6 +139,47 @@ func UniqFunc[T any, R comparable](src []T, id func(t T) R) []T {
 	}
 
 	return dest
+}
+
+// Shuffle will randomize the elements in a slice and return an iterator to the next item
+func Shuffle[S ~[]E, E any](list S) iter.Seq[E] {
+	used := make(map[int64]bool, len(list))
+	ub := big.NewInt(int64(len(list)))
+
+	next := func() (int64, bool) {
+		if len(used) == len(list) {
+			return -1, true
+		}
+
+		for range min(math.MaxInt, len(list)*5) {
+			i, _ := rand.Int(rand.Reader, ub)
+			if _, found := used[i.Int64()]; found {
+				continue
+			}
+
+			used[i.Int64()] = true
+			return i.Int64(), true
+		}
+
+		return -1, false
+	}
+
+	return func(yield func(E) bool) {
+		for range len(list) {
+			idx, valid := next()
+			if idx == -1 {
+				if valid {
+					return
+				}
+
+				panic("could not get random index")
+			}
+
+			if !yield(list[int(idx)]) {
+				return
+			}
+		}
+	}
 }
 
 // EVERYTHING BELOW THIS IS A DIRECT CALL TO THE STDLIB SLICES PACKAGE SO THAT OUR SLICES PACKAGE CAN BE A DROP IN
