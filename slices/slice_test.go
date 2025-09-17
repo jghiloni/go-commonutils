@@ -113,6 +113,8 @@ var _ = Describe("Slice", func() {
 				Expect(slices.Contains(used, i)).To(BeFalse())
 				used = append(used, i)
 			}
+
+			Expect(used).To(HaveLen(1000))
 		})
 	})
 })
