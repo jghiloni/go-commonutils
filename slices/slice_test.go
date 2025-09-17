@@ -108,13 +108,18 @@ var _ = Describe("Slice", func() {
 				test[i] = i
 			}
 
+			orig := make([]int, 1000)
+			copy(orig, test)
+			Expect(orig).To(BeEquivalentTo(test))
 			used := make([]int, 0, 1000)
-			for i := range slices.Shuffle(test) {
+			slices.Shuffle(test)
+			for i := range test {
 				Expect(slices.Contains(used, i)).To(BeFalse())
 				used = append(used, i)
 			}
 
 			Expect(used).To(HaveLen(1000))
+			Expect(orig).NotTo(BeEquivalentTo(test))
 		})
 	})
 })

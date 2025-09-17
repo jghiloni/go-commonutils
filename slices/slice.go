@@ -142,8 +142,8 @@ func UniqFunc[T any, R comparable](src []T, id func(t T) R) []T {
 	return dest
 }
 
-// Shuffle will randomize the elements in a slice and return an iterator to the next item
-func Shuffle[S ~[]E, E any](list S) S {
+// Shuffle will randomize the elements in a slice in place
+func Shuffle[S ~[]E, E any](list S) {
 	used := make(map[int64]bool, len(list))
 	ub := big.NewInt(int64(len(list)))
 
@@ -163,17 +163,17 @@ func Shuffle[S ~[]E, E any](list S) S {
 		return -1
 	}
 
-	retVal := make(S, len(list))
+	newlist := make(S, len(list))
 	for i := range list {
 		idx := next()
 		if idx == -1 {
 			panic(fmt.Errorf("could not find an unused index after %d attempts", idxAttempts))
 		}
 
-		retVal[i] = list[idx]
+		newlist[i] = list[idx]
 	}
 
-	return retVal
+	copy(list, newlist)
 }
 
 // EVERYTHING BELOW THIS IS A DIRECT CALL TO THE STDLIB SLICES PACKAGE SO THAT OUR SLICES PACKAGE CAN BE A DROP IN
