@@ -2,6 +2,7 @@ package data
 
 import (
 	"errors"
+	"io"
 	"sync"
 	"time"
 )
@@ -42,8 +43,8 @@ func (r *RingBuffer[T]) isClosed() bool {
 
 // Read will remove and return the first len(p) items from the buffer. If the buffer is closed, it will return
 // [ErrRingBufferClosed]. If the buffer is empty, it will block until data becomes avaailable, and it is the responsibilty
-// of the user to Close the buffer if they wish to end the wait. In the successful case, it will return the  number of items
-// returned (which will be min(len(p), buffer.capacity)) and a nil error
+// of the user to Close the buffer if they wish to end the wait. If Close is called while a Read call is waiting, it will
+// return -1, [io.EOF]. In the successful case, it will return the number of items returned (which will be min(len(p), buffer.capacity)) and a nil error
 func (r *RingBuffer[T]) Read(p []T) (int, error) {
 	if r.isClosed() {
 		return -1, ErrRingBufferClosed
