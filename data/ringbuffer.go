@@ -2,8 +2,8 @@ package data
 
 import (
 	"errors"
-	"io"
 	"sync"
+	"time"
 )
 
 // ErrRingBufferClosed is returned when a Read/Pop or Write/Push is called on a [RingBuffer] that has already had its
@@ -34,12 +34,18 @@ func NewRingBuffer[T any](capacity int) *RingBuffer[T] {
 	}
 }
 
+func (r *RingBuffer[T]) isClosed() bool {
+	r.rw.RLock()
+	defer r.rw.RUnlock()
+	return r.closed
+}
+
 // Read will remove and return the first len(p) items from the buffer. If the buffer is closed, it will return
-// [ErrRingBufferClosed]. If the buffer is empty, it will return [io.EOF]. In the successful case, it will return the
-// number of items returned (which will be min(len(p), buffer.capacity)) and a nil error -- though you may consider
-// io.EOF to be a successful error case, as it is simply indicating the buffer is empty
+// [ErrRingBufferClosed]. If the buffer is empty, it will block until data becomes avaailable, and it is the responsibilty
+// of the user to Close the buffer if they wish to end the wait. In the successful case, it will return the  number of items
+// returned (which will be min(len(p), buffer.capacity)) and a nil error
 func (r *RingBuffer[T]) Read(p []T) (int, error) {
-	if r.closed {
+	if r.isClosed() {
 		return -1, ErrRingBufferClosed
 	}
 
@@ -48,8 +54,12 @@ func (r *RingBuffer[T]) Read(p []T) (int, error) {
 	}
 
 	bufLen := r.Len()
-	if bufLen == 0 {
-		return 0, io.EOF
+	for bufLen == 0 {
+		time.Sleep(5 * time.Millisecond)
+		if r.isClosed() {
+			return -1, io.EOF
+		}
+		bufLen = r.Len()
 	}
 
 	if len(p) > bufLen {
@@ -79,7 +89,7 @@ func (r *RingBuffer[T]) Read(p []T) (int, error) {
 // of items will be dropped from the front of the buffer. If the list of items is larger than the buffer itself, then
 // when it is complete, the list will be the last buffer.capacity items of the passed list
 func (r *RingBuffer[T]) Write(p []T) (int, error) {
-	if r.closed {
+	if r.isClosed() {
 		return -1, ErrRingBufferClosed
 	}
 
@@ -113,7 +123,7 @@ func (r *RingBuffer[T]) Write(p []T) (int, error) {
 
 // Close will render the RingBuffer unusable
 func (r *RingBuffer[T]) Close() error {
-	if r.closed {
+	if r.isClosed() {
 		return ErrRingBufferClosed
 	}
 	r.rw.Lock()
@@ -121,7 +131,6 @@ func (r *RingBuffer[T]) Close() error {
 
 	r.closed = true
 	r.buf = make([]T, 0, 1)
-	r.capacity = 0
 
 	return nil
 }
@@ -160,7 +169,7 @@ func (r *RingBuffer[T]) Cap() int {
 
 // Peek allows the user to view the first n items of the ring buffer without affecting the data
 func (r *RingBuffer[T]) Peek(n int) ([]T, error) {
-	if r.closed {
+	if r.isClosed() {
 		return nil, ErrRingBufferClosed
 	}
 
