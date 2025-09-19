@@ -191,3 +191,16 @@ func (r *RingBuffer[T]) Peek(n int) ([]T, error) {
 func (r *RingBuffer[T]) PeekAll() ([]T, error) {
 	return r.Peek(r.Len())
 }
+
+// Clear will empty the buffer without closing it
+func (r *RingBuffer[T]) Clear() error {
+	if r.isClosed() {
+		return ErrRingBufferClosed
+	}
+
+	r.rw.Lock()
+	clear(r.buf)
+	r.rw.Unlock()
+
+	return nil
+}
