@@ -15,14 +15,14 @@ var ErrRingBufferClosed = errors.New("buffer closed")
 // multiple goroutines
 type RingBuffer[T any] struct {
 	buf      []T
-	capacity uint
-	rw       *sync.Mutex
+	capacity int
+	rw       *sync.RWMutex
 	closed   bool
 }
 
 // NewRingBuffer will return a ring buffer of the requested type and with the requested capacity. If capacity is 0,
 // NewRingBuffer will panic. If you create NewRingBuffer[byte], the returned instance implements [io.ReadWriteCloser]
-func NewRingBuffer[T any](capacity uint) *RingBuffer[T] {
+func NewRingBuffer[T any](capacity int) *RingBuffer[T] {
 	if capacity == 0 {
 		panic("capacity must be > 0")
 	}
@@ -30,7 +30,7 @@ func NewRingBuffer[T any](capacity uint) *RingBuffer[T] {
 	return &RingBuffer[T]{
 		buf:      make([]T, 0, capacity),
 		capacity: capacity,
-		rw:       &sync.Mutex{},
+		rw:       &sync.RWMutex{},
 	}
 }
 
@@ -42,27 +42,34 @@ func (r *RingBuffer[T]) Read(p []T) (int, error) {
 	if r.closed {
 		return -1, ErrRingBufferClosed
 	}
-	r.rw.Lock()
-	defer r.rw.Unlock()
 
 	if len(p) == 0 {
 		return 0, nil
 	}
 
-	if len(r.buf) == 0 {
+	bufLen := r.Len()
+	if bufLen == 0 {
 		return 0, io.EOF
 	}
 
-	if len(p) > len(r.buf) {
-		n := len(r.buf)
+	if len(p) > bufLen {
+		n := bufLen
+		r.rw.RLock()
 		copy(p, r.buf)
+		r.rw.RUnlock()
+		r.rw.Lock()
 		clear(r.buf)
+		r.rw.Unlock()
 		return n, nil
 	}
 
 	n := len(p)
+	r.rw.RLock()
 	copy(p, r.buf[:n])
+	r.rw.RUnlock()
+	r.rw.Lock()
 	r.buf = r.buf[n:]
+	r.rw.Unlock()
 
 	return n, nil
 }
@@ -75,27 +82,31 @@ func (r *RingBuffer[T]) Write(p []T) (int, error) {
 	if r.closed {
 		return -1, ErrRingBufferClosed
 	}
-	r.rw.Lock()
-	defer r.rw.Unlock()
 
 	if len(p) == 0 {
 		return 0, nil
 	}
 
-	if len(p) >= int(r.capacity) {
-		start := len(p) - int(r.capacity)
+	if len(p) >= r.Cap() {
+		start := len(p) - r.Cap()
+		r.rw.Lock()
 		r.buf = p[start:]
+		r.rw.Unlock()
 
-		return int(r.capacity), nil
+		return r.Cap(), nil
 	}
 
-	availableSpace := int(r.capacity) - len(r.buf)
+	availableSpace := r.Cap() - r.Len()
 	if len(p) <= availableSpace {
+		r.rw.Lock()
 		r.buf = append(r.buf, p...)
+		r.rw.Unlock()
 		return len(p), nil
 	} else {
 		bumpCount := len(p) - availableSpace
+		r.rw.Lock()
 		r.buf = append(r.buf[bumpCount:], p...)
+		r.rw.Unlock()
 		return len(p), nil
 	}
 }
@@ -105,6 +116,8 @@ func (r *RingBuffer[T]) Close() error {
 	if r.closed {
 		return ErrRingBufferClosed
 	}
+	r.rw.Lock()
+	defer r.rw.Unlock()
 
 	r.closed = true
 	r.buf = make([]T, 0, 1)
@@ -135,15 +148,13 @@ func (r *RingBuffer[T]) Push(vals ...T) (int, error) {
 
 // Len is equivalent to len(slice)
 func (r *RingBuffer[T]) Len() int {
-	r.rw.Lock()
-	defer r.rw.Unlock()
+	r.rw.RLock()
+	defer r.rw.RUnlock()
 	return len(r.buf)
 }
 
 // Cap returns the capacity of the buffer and is immutable
-func (r *RingBuffer[T]) Cap() uint {
-	r.rw.Lock()
-	defer r.rw.Unlock()
+func (r *RingBuffer[T]) Cap() int {
 	return r.capacity
 }
 
@@ -157,13 +168,12 @@ func (r *RingBuffer[T]) Peek(n int) ([]T, error) {
 		return nil, errors.New("n must be positive")
 	}
 
-	r.rw.Lock()
-	defer r.rw.Unlock()
-
 	p := make([]T, n)
-	copyLen := min(n, len(r.buf))
+	copyLen := min(n, r.Len())
 
+	r.rw.RLock()
 	copy(p, r.buf[:copyLen])
+	r.rw.RUnlock()
 	return p, nil
 }
 
